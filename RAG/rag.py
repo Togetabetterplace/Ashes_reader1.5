@@ -47,6 +47,14 @@ def rerank(docs, query, rerank_tokenizer, rerank_model, k=4):
 
 
 def build_rag_cache(user_CloudBase_path, cache_dir='./.RAG_cache/'):
+    """
+    构建RAG模型所需的缓存，包括BM25索引和向量库。
+    
+    参数:
+    user_CloudBase_path (str): 用户在CloudBase上的路径，用于获取用户文档。
+    cache_dir (str): 缓存目录路径，默认为'./.RAG_cache/'。
+    """
+    # 提取用户ID作为缓存目录的子目录名
     user_id_base = user_CloudBase_path.split('/')[-1]
     cache_dir = os.path.join(cache_dir, user_id_base)
     if not os.path.exists(cache_dir):
@@ -70,9 +78,11 @@ def build_rag_cache(user_CloudBase_path, cache_dir='./.RAG_cache/'):
 
     bm25_docs = []
 
+    # 遍历用户CloudBase路径下的所有文件
     for file in os.listdir(user_CloudBase_path):
         filepath = os.path.join(user_CloudBase_path, file)
         if os.path.isfile(filepath):
+            # 提取文档文本并构建BM25文档库
             docs = extract_page_text(filepath=filepath, max_len=300, overlap_len=100) + \
                 extract_page_text(filepath=filepath,
                                   max_len=500, overlap_len=200)
@@ -108,6 +118,19 @@ def build_rag_cache(user_CloudBase_path, cache_dir='./.RAG_cache/'):
 
 
 def rag_inference(query, llm, cache_dir='./RAG_cache', batch_size=4, num_input_docs=4):
+    """
+    实现RAG模型的推理过程。
+    
+    参数:
+    - query (str): 用户的查询问题。
+    - llm (对象): 语言模型对象，用于生成回答。
+    - cache_dir (str): 缓存目录路径，默认为'./RAG_cache'。
+    - batch_size (int): 批处理大小，默认为4。
+    - num_input_docs (int): 输入文档的数量，默认为4。
+    
+    返回:
+    - dict: 包含三个答案的字典。
+    """
     # 初始化重排序模型的 tokenizer 和 model
     rerank_model_path = './.models/hub/BAAI/bge-reranker-large'
     if not os.path.exists(rerank_model_path):
