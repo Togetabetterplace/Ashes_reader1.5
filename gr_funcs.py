@@ -1,25 +1,28 @@
 # gr_funcs.py
 import re
+import os
 import time
 import json
-import gradio as gr
-import utils.projectIO_utils as projectIO_utils
-import LLM_server
-import utils.arXiv_search as arXiv_search
-import utils.github_search as github_search
-import RAG.rag as rag
+import zipfile
 import logging
 import config
 import shutil
 import requests
-import os
+import gradio as gr
+import gpt_server
+import RAG.rag as rag
+import utils.projectIO_utils as projectIO_utils
+import utils.arXiv_search as arXiv_search
+import utils.github_search as github_search
+import services.user_service as user_service
+from werkzeug.utils import secure_filename
 from config import db_path
 # from handlers import DatabaseManager
 
 # global  selected_resource
+UPLOAD_FOLDER = './.uploads'
 
-
-def analyse_project(prj_path, llm, progress=gr.Progress()):
+def analyse_project(prj_path, progress=gr.Progress()):
     """
     分析项目文件并生成阅读进度。
 
@@ -45,18 +48,16 @@ def analyse_project(prj_path, llm, progress=gr.Progress()):
 
         sys_prompt = "你是一位资深的程序员，正在帮一位新手程序员阅读某个开源项目，我会把每个文件的内容告诉你，" \
                      "你需要做一个新手程序员阅读的，简单明了的总结。用MarkDown格式返回（必要的话可以用emoji表情增加趣味性）"
-        user_prompt = f"源文件路径：{
-            relative_file_name}，源代码：\n```\n{file_content}```"
+        user_prompt = f"源文件路径：{relative_file_name}，源代码：\n```\n{file_content}```"
 
         try:
-            response = llm.request(sys_prompt, [(user_prompt, None)])
+            response = gpt_server.request_llm(sys_prompt, [(user_prompt, None)])
             llm_responses[file_name] = next(response)
         except Exception as e:
             logging.error(f"处理文件 {file_name} 失败: {e}")
             llm_responses[file_name] = f"处理失败: {e}"
 
     return '阅读完成'
-
 
 def get_lang_from_file(file_name):
     extensions = {
@@ -71,7 +72,6 @@ def get_lang_from_file(file_name):
     }
     ext = os.path.splitext(file_name)[1].lower()
     return extensions.get(ext)
-
 
 def view_prj_file(selected_file):
     """
@@ -106,7 +106,6 @@ def view_prj_file(selected_file):
     # 最后生成选定文件的内容和GPT响应文本
     yield (selected_file,), [[None, None]], gpt_res_text
 
-
 def gen_prj_summary_prompt(llm_responses):
     prefix_prompt = '这里有一个代码项目，里面的每个文件的功能已经被总结过了。' \
                     '你需要根据每个文件的总结内容，做一个整体总结，简单明了，突出重点。' \
@@ -120,7 +119,6 @@ def gen_prj_summary_prompt(llm_responses):
     suffix_prompt = '你做的是类似"README"对整个项目的总结，而不需要再对单个文件做总结。"'
     return f'{prompt}{suffix_prompt}'
 
-
 def prj_chat(user_in_text: str, prj_chatbot: list, llm):
     sys_prompt = "你是一位资深的导师，指导算法专业的毕业生写论文，这里有些代码需要总结，也有一些论文改写工作需要你指导。"
     prj_chatbot.append([user_in_text, ''])
@@ -129,8 +127,7 @@ def prj_chat(user_in_text: str, prj_chatbot: list, llm):
     if user_in_text == '总结整个项目':  # 新起对话，总结项目
         new_prompt = gen_prj_summary_prompt(llm_responses)
         print(new_prompt)
-        llm_responses = llm.request(
-            sys_prompt, [(new_prompt, None)], stream=True)
+        llm_responses = llm.request(sys_prompt, [(new_prompt, None)], stream=True)
     else:
         llm_responses = llm.request(sys_prompt, prj_chatbot, stream=True)
 
@@ -138,16 +135,13 @@ def prj_chat(user_in_text: str, prj_chatbot: list, llm):
         prj_chatbot[-1][1] = chunk_content
         yield prj_chatbot
 
-
 def clear_textbox():
     return ''
-
 
 def view_uncmt_file(selected_file):
     lang = get_lang_from_file(selected_file)
     return gr.update(language=lang, value=(selected_file,)), gr.update(variant='primary', interactive=True,
                                                                        value='添加注释'), gr.update(visible=False)
-
 
 def ai_comment(btn_name, selected_file, user_id, llm):
     """
@@ -184,8 +178,7 @@ def ai_comment(btn_name, selected_file, user_id, llm):
             res_code = next(response)
             # 检查返回的代码是否以```开始和结束，如果是，则提取代码块
             if res_code.startswith('```') and res_code.endswith('```'):
-                code_blocks = re.findall(
-                    r'```(?:\w+)?\n(.*?)\n```', res_code, re.DOTALL)
+                code_blocks = re.findall(r'```(?:\w+)?\n(.*?)\n```', res_code, re.DOTALL)
                 res_code = code_blocks[0]
 
             # 显示添加注释后的代码
@@ -195,16 +188,15 @@ def ai_comment(btn_name, selected_file, user_id, llm):
             logging.error(f"处理文件 {selected_file} 添加注释失败: {e}")
             yield '添加注释失败', gr.update(visible=True, language=lang, value=f"添加注释失败: {e}")
 
-
 def model_change(model_name):
-    LLM_server.set_llm(model_name)
+    gpt_server.set_llm(model_name)
     return model_name
-
 
 def view_raw_lang_code_file(selected_file):
     lang = get_lang_from_file(selected_file)
-    return gr.update(language=lang, value=(selected_file,)), gr.update(variant='primary', interactive=True, value='转换'), gr.update(visible=False)
-
+    return gr.update(language=lang, value=(selected_file,))\
+        , gr.update(variant='primary', interactive=True, value='转换')\
+        , gr.update(visible=False)
 
 def change_code_lang(btn_name, raw_code, to_lang, user_id, llm):
     if btn_name != '转换':
@@ -213,10 +205,10 @@ def change_code_lang(btn_name, raw_code, to_lang, user_id, llm):
         yield '语言转换中...', gr.update(visible=False)
 
         sys_prompt = f"你是一位资深的程序员，可以一些任何编程语言的代码，我需要你将下面的代码转成`{to_lang}`语言的代码。要求：\n" \
-            f"- 保证转换后的代码是正确的\n" \
-            f"- 对于无法转换的情况，可以不转，但需要进行说明\n" \
-            f"- 如果遇到第三方库，需要说明在目标变成语言中，依赖什么库，如果目标编程语言没有对应的库，也进行说明\n" \
-            f"- 用Markdown格式返回，内容简单明了，不要太啰嗦"
+                     f"- 保证转换后的代码是正确的\n" \
+                     f"- 对于无法转换的情况，可以不转，但需要进行说明\n" \
+                     f"- 如果遇到第三方库，需要说明在目标变成语言中，依赖什么库，如果目标编程语言没有对应的库，也进行说明\n" \
+                     f"- 用Markdown格式返回，内容简单明了，不要太啰嗦"
         user_prompt = f"源代码：\n```{raw_code}```"
 
         try:
@@ -227,16 +219,12 @@ def change_code_lang(btn_name, raw_code, to_lang, user_id, llm):
             logging.error(f"转换代码语言失败: {e}")
             yield '转换失败', gr.update(visible=True, value=f"转换失败: {e}")
 
-
 def github_search_func(query, user_id):
     dir_path = config.get_user_save_path(user_id, 'github')
-    results, repo_choices = github_search.search_github(
-        query, dir_path, max_results=5)
+    results, repo_choices = github_search.search_github(query, dir_path, max_results=5)
     search_results = json.loads(results)
-    search_results_md = "\n".join(
-        [f"- **{repo['owner']}/{repo['repo']}**: {repo['description']}" for repo in search_results])
+    search_results_md = "\n".join([f"- **{repo['owner']}/{repo['repo']}**: {repo['description']}" for repo in search_results])
     return search_results_md, repo_choices
-
 
 def process_github_repo(selected_repo, user_id):
     dir_path = config.get_user_save_path(user_id, 'github')
@@ -247,33 +235,27 @@ def process_github_repo(selected_repo, user_id):
         repo_summary = f"下载仓库 {selected_repo} 失败"
     return repo_summary
 
-
 def arxiv_search_func(query, user_id):
     dir_path = config.get_user_save_path(user_id, 'arXiv')
     try:
-        results, paper_choices = arXiv_search.arxiv_search(
-            query, dir_path, max_results=5, translate=True, dest_language='zh-cn')
+        results, paper_choices = arXiv_search.arxiv_search(query, dir_path, max_results=5, translate=True, dest_language='zh-cn')
         search_results = json.loads(results)
-        search_results_md = "\n".join(
-            [f"- **{paper['title']}**: {paper['summary']}" for paper in search_results])
+        search_results_md = "\n".join([f"- **{paper['title']}**: {paper['summary']}" for paper in search_results])
         return search_results_md, paper_choices
     except Exception as e:
         logging.error(f"arXiv 搜索失败: {e}")
         return f"搜索失败: {e}", []
 
-
 def process_paper(selected_paper, user_id):
     dir_path = config.get_user_save_path(user_id, 'arXiv')
     try:
-        paper_info = arXiv_search.arxiv_search(
-            selected_paper, dir_path, max_results=1, translate=True, dest_language='zh-cn')
+        paper_info = arXiv_search.arxiv_search(selected_paper, dir_path, max_results=1, translate=True, dest_language='zh-cn')
         paper_info = json.loads(paper_info)[0]
         paper_summary = paper_info.get('summary', '无法获取摘要')
         return paper_summary
     except Exception as e:
         logging.error(f"处理论文失败: {e}")
         return f"处理失败: {e}"
-
 
 def process_resource(selected_resource):
     # 解析资源并返回相关信息
@@ -292,18 +274,15 @@ def download_resource(selected_resource, user_id, download_path):
         logging.error(f"下载资源失败: {e}")
         return f"下载失败: {e}"
 
-
 def parse_resource(resource_path):
     # 实现资源解析逻辑
     # 这里可以添加具体的解析代码
     resource_info = f"解析资源: {resource_path}"
     return resource_info
 
-
 def create_new_conversation(user_id):
     response = requests.post('/conversations', json={'user_id': user_id})
     return response
-
 
 def get_conversation(conversation_id):
     response = requests.get(f'/conversations/{conversation_id}')
@@ -312,11 +291,53 @@ def get_conversation(conversation_id):
     else:
         return None
 
-
 def select_conversation(conversation_list):
     selected_conversation = conversation_list.selected_item  # 根据实际逻辑获取选中的对话
     return selected_conversation.history  # 返回选中对话的历史记录
 
+def register_handler(username, email, password):
+    success, message = user_service.register(username, password, email)
+    return message
+
+def login_handler(username, password):
+    success, user_id, cloud_storage_path = user_service.login(username, password)
+    if success:
+        user_info = user_service.get_user_info(user_id)
+        return f"登录成功，用户ID: {user_id}, 云库路径: {cloud_storage_path}", user_info
+    else:
+        return "登录失败，请检查用户名和密码", None
+
+def save_file(file, user_id):
+    base_path = os.path.join('./.Cloud_base', f'user_{user_id}')
+    project_base_path = os.path.join(base_path, 'project_base')
+    paper_base_path = os.path.join(base_path, 'paper_base')
+
+    os.makedirs(project_base_path, exist_ok=True)
+    os.makedirs(paper_base_path, exist_ok=True)
+
+    file_name = secure_filename(file.filename)
+    file_path = os.path.join(UPLOAD_FOLDER, file_name)
+
+    file.save(file_path)
+
+    if file_name.endswith('.zip'):
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(project_base_path)
+        new_dir = project_base_path
+    else:
+        new_file_path = os.path.join(paper_base_path, file_name)
+        shutil.copy(file_path, new_file_path)
+        new_dir = paper_base_path
+
+    os.remove(file_path)
+
+    return file_name, new_dir
+
+def search_resource(query):
+    # 实现资源搜索逻辑
+    # 这里可以添加具体的搜索代码
+    resource_search_results = f"搜索资源: {query}"
+    return resource_search_results, []
 
 """
 # def clean_tmp_directory(tmp_path='./.Cloud_base/tmp/'):

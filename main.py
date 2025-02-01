@@ -1,8 +1,10 @@
+# main.py
 import os
 import sqlite3
 from flask import Flask, jsonify
 from ma_ui import UIManager
 from llms.Llama_init import Llama
+from llms.Qwen_init import Qwen
 from utils.init_database import init_db
 from routes.conversation_routes import conversation_bp
 from routes.user_routes import user_bp
@@ -16,8 +18,10 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# 在关键位置添加日志
-logger.info("Application started")
+# # 在关键位置添加日志
+# logger.info("Application started")
+
+# global selected_resource
 
 load_dotenv()
 
@@ -25,7 +29,9 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 os.environ["MODELSCOPE_CACHE"] = './.models/'
-MODEL_PATH = './.models/hub/OpenScholar/Llama-3_OpenScholar-8B'
+# MODEL_PATH = './.models/hub/OpenScholar/Llama-3_OpenScholar-8B'
+# MODEL_PATH = './.models/hub/Qwen/Qwen2.5-7B-instruct'
+MODEL_PATH = './models/hub/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B'
 
 # 增加环境变量检查
 required_env_vars = [
@@ -51,17 +57,21 @@ def not_found(error):
 def internal_error(error):
     return jsonify({'error': 'Internal Server Error'}), 500
 
+
 def load_model():
     try:
         if os.path.exists(MODEL_PATH):
             model_path = MODEL_PATH
         else:
-            model_path = snapshot_download("OpenScholar/Llama-3_OpenScholar-8B")
-        llm = Llama(model_name='Llama', model_path=model_path)
+            # model_path = snapshot_download("OpenScholar/Llama-3_OpenScholar-8B")
+            model_path = snapshot_download(
+                "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B")
+        llm = Qwen(model_name='Qwen', model_path=model_path)
         return llm
     except Exception as e:
         logger.error(f"加载模型时发生错误: {e}")
         raise
+
 
 def main():
     try:
@@ -70,6 +80,41 @@ def main():
         ui_components = ui_manager.build_ui(llm)
         
         # 获取返回的组件
+        """
+                return {
+            'prj_name_tb': self.prj_name_tb,
+            'selected_resource': self.selected_resource,
+            'conversation_list': self.conversation_list,
+            'conversation_history': self.conversation_history,
+            'user_id': self.user_id,
+            'model_selector': self.model_selector,
+            'dir_submit_btn': self.dir_submit_btn,
+            'prj_fe': self.prj_fe,
+            'prj_chat_btn': self.prj_chat_btn,
+            'code_cmt_btn': self.code_cmt_btn,
+            'code_lang_ch_btn': self.code_lang_ch_btn,
+            'search_btn': self.search_btn,
+            'process_paper_btn': self.process_paper_btn,
+            'github_search_btn': self.github_search_btn,
+            'process_github_repo_btn': self.process_github_repo_btn,
+            'resource_search_btn': self.resource_search_btn,
+            'process_resource_btn': self.process_resource_btn,
+            'project_path': self.project_path,
+            'paper_path': self.paper_path,
+            'select_paths_btn': self.select_paths_btn,
+            'download_resource_btn': self.download_resource_btn,
+            'new_conversation_btn': self.new_conversation_btn,
+            'conversation_list': self.conversation_list,
+            'conversation_history': self.conversation_history,
+            'register_btn': self.register_btn,
+            'login_btn': self.login_btn,
+            'register_username': self.register_username,
+            'register_email': self.register_email,
+            'register_password': self.register_password,
+            'login_username': self.login_username,
+            'login_password': self.login_password,
+        }
+        """
         prj_name_tb = ui_components.get('prj_name_tb')
         selected_resource = ui_components.get('selected_resource')
         conversation_list = ui_components.get('conversation_list')
@@ -102,13 +147,14 @@ def main():
         login_username = ui_components.get('login_username')
         login_password = ui_components.get('login_password')
         
-        # 构建 RAG 缓存
-        build_rag_cache(user_CloudBase_path=f'./.Cloud_base/user_{user_id}/', cache_dir=f'./.RAG_cache/user_{user_id}/')
+        
+        build_rag_cache(user_CloudBase_path=f'./.Cloud_base/user_{user_id}/', model_path=MODEL_PATH)
         
         # 如果需要进一步使用这些组件，可以在这里添加代码
     except Exception as e:
         logger.error(f"An error occurred: {e}")
         raise
+
 
 if __name__ == '__main__':
     try:
@@ -120,39 +166,3 @@ if __name__ == '__main__':
     except Exception as e:
         logger.error(f"An error occurred: {e}")
         raise
-    
-"""
-        return {
-    'prj_name_tb': self.prj_name_tb,
-    'selected_resource': self.selected_resource,
-    'conversation_list': self.conversation_list,
-    'conversation_history': self.conversation_history,
-    'user_id': self.user_id,
-    'model_selector': self.model_selector,
-    'dir_submit_btn': self.dir_submit_btn,
-    'prj_fe': self.prj_fe,
-    'prj_chat_btn': self.prj_chat_btn,
-    'code_cmt_btn': self.code_cmt_btn,
-    'code_lang_ch_btn': self.code_lang_ch_btn,
-    'search_btn': self.search_btn,
-    'process_paper_btn': self.process_paper_btn,
-    'github_search_btn': self.github_search_btn,
-    'process_github_repo_btn': self.process_github_repo_btn,
-    'resource_search_btn': self.resource_search_btn,
-    'process_resource_btn': self.process_resource_btn,
-    'project_path': self.project_path,
-    'paper_path': self.paper_path,
-    'select_paths_btn': self.select_paths_btn,
-    'download_resource_btn': self.download_resource_btn,
-    'new_conversation_btn': self.new_conversation_btn,
-    'conversation_list': self.conversation_list,
-    'conversation_history': self.conversation_history,
-    'register_btn': self.register_btn,
-    'login_btn': self.login_btn,
-    'register_username': self.register_username,
-    'register_email': self.register_email,
-    'register_password': self.register_password,
-    'login_username': self.login_username,
-    'login_password': self.login_password,
-}
-"""

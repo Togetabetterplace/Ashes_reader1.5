@@ -12,10 +12,11 @@ from utils.update_utils import update_prj_dir
 from services.conversation_service import create_conversation, get_conversation
 from utils.update_utils import select_paths_handler
 from services.user_service import get_user_resources
-from gr_funcs import select_conversation, create_new_conversation, download_resource
-from RAG.rag import build_rag_cache
+from gr_funcs import select_conversation, create_new_conversation, download_resource, save_file, \
+    register_handler, login_handler
 import services.user_service as user_service
 from werkzeug.utils import secure_filename
+from RAG.rag import build_rag_cache
 import logging
 
 UPLOAD_FOLDER = './.uploads'
@@ -200,6 +201,14 @@ class UIManager:
                     code_lang_changed_md = gr.Markdown(
                         label='转换代码语言', visible=False, elem_id='box_shad')
 
+            # // ...existing code...
+            prj_chat_btn.click(
+                fn=lambda *args: (gr_funcs.prj_chat(*args), gr_funcs.clear_textbox()),
+                inputs=[self.prj_chat_txt, self.prj_chatbot, llm],  # 传递 llm 参数
+                outputs=[self.prj_chatbot, self.prj_chat_txt]  # 使用 get 方法获取组件值
+            )
+            # // ...existing code...
+
             # 新增的论文搜索选项卡
             with gr.Accordion(label='论文搜索', open=False):
                 with gr.Row():
@@ -267,7 +276,11 @@ class UIManager:
                     upload_btn = gr.Button(
                         '上传', variant='primary', scale=1, min_width=100)
 
-
+            prj_chat_btn.click(
+                fn=lambda *args: (gr_funcs.prj_chat(*args), gr_funcs.clear_textbox()),
+                inputs=[prj_chat_txt, self.prj_chatbot, llm],  # 传递 llm 参数
+                outputs=[self.prj_chatbot, prj_chat_txt]  # 使用 get 方法获取组件值
+            )
             # 注册和登录事件处理器
             register_btn.click(fn=register_handler, inputs=[
                                register_username, register_email, register_password], outputs=gr.Textbox())
@@ -279,7 +292,6 @@ class UIManager:
             ), inputs=[], outputs=[self.conversation_list, self.conversation_history])
             prj_chat_btn.click(fn=lambda message: self.send_message(message), inputs=[
                                prj_chat_txt], outputs=[self.conversation_history])
-            prj_chat_btn.click(lambda: "", outputs=prj_chat_txt)
             search_btn.click(fn=lambda query: self.process_arxiv_search(query), inputs=[
                              search_query], outputs=[search_results, selected_paper])
             github_search_btn.click(fn=lambda query: self.process_github_search(query), inputs=[
@@ -396,7 +408,6 @@ class UIManager:
                 outputs=gr.Textbox()
             )
 
-            # 添加事件处理程序，用于选择云库中的项目路径并进行分析
             project_path.change(
                 fn=lambda user_id, project_path: select_paths_handler(
                     user_id, project_path, None),

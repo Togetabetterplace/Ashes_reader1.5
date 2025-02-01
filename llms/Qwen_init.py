@@ -1,14 +1,14 @@
 from modelscope import AutoTokenizer
 from vllm import LLM, SamplingParams
 
-class LLM:
+class LLM_init:
     def __init__(self, model_name):
         self.model_name = model_name
 
     def request(self, sys_prompt, user_prompt: list, stream=False):
         pass
 
-class Qwen(LLM):
+class Qwen(LLM_init):
     def __init__(self, model_name, model_path=None):
         super().__init__(model_name)
 
@@ -54,7 +54,7 @@ class Qwen(LLM):
 
 # 示例使用
 if __name__ == "__main__":
-    qwen = Qwen("Qwen-7B-Chat")
+    qwen = Qwen("Qwen2.5-7B-Chat")
     sys_prompt = "你是一个智能助手。"
     user_prompt = [
         ("你好，Qwen！", "你好！有什么我可以帮忙的吗？"),
