@@ -5,7 +5,7 @@ import logging
 import os
 import shutil
 import zipfile
-from werkzeug.utils import secure_filename 
+from werkzeug.utils import secure_filename
 global prj_name_tb, selected_resource
 
 
@@ -65,7 +65,6 @@ def select_paths_handler(user_id, project_path, paper_path):
     return "路径选择成功"
 
 
-
 def clean_tmp_directory(tmp_path='./.Cloud_base/tmp/'):
     try:
         # 确保 tmp 文件夹存在
@@ -112,6 +111,7 @@ def upload_file_handler(file, user_id, selected_resource):
 
     # 更新 PRJ_DIR 为新上传资源的路径
 
+
 def upload_file_handler(file, user_id):
     if file is None or file.filename == '':
         return "请选择文件或压缩包"
@@ -134,7 +134,6 @@ def upload_file_handler(file, user_id):
     os.environ["PRJ_DIR"] = new_dir
     prj_name_tb.update(value=new_dir)
     update_prj_dir(user_id, new_dir)
-
 
     # 更新数据库新增资源
     conn = sqlite3.connect(db_path)

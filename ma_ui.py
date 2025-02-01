@@ -201,13 +201,12 @@ class UIManager:
                     code_lang_changed_md = gr.Markdown(
                         label='转换代码语言', visible=False, elem_id='box_shad')
 
-            # // ...existing code...
             prj_chat_btn.click(
-                fn=lambda *args: (gr_funcs.prj_chat(*args), gr_funcs.clear_textbox()),
+                fn=lambda *args: (gr_funcs.prj_chat(*args),
+                                  gr_funcs.clear_textbox()),
                 inputs=[self.prj_chat_txt, self.prj_chatbot, llm],  # 传递 llm 参数
                 outputs=[self.prj_chatbot, self.prj_chat_txt]  # 使用 get 方法获取组件值
             )
-            # // ...existing code...
 
             # 新增的论文搜索选项卡
             with gr.Accordion(label='论文搜索', open=False):
@@ -277,7 +276,8 @@ class UIManager:
                         '上传', variant='primary', scale=1, min_width=100)
 
             prj_chat_btn.click(
-                fn=lambda *args: (gr_funcs.prj_chat(*args), gr_funcs.clear_textbox()),
+                fn=lambda *args: (gr_funcs.prj_chat(*args),
+                                  gr_funcs.clear_textbox()),
                 inputs=[prj_chat_txt, self.prj_chatbot, llm],  # 传递 llm 参数
                 outputs=[self.prj_chatbot, prj_chat_txt]  # 使用 get 方法获取组件值
             )
@@ -314,83 +314,87 @@ class UIManager:
             prj_fe.change(
                 gr_funcs.view_prj_file,
                 inputs=[prj_fe],
-                outputs=[ code,  gpt_label,
+                outputs=[code,  gpt_label,
                          gpt_md]  # 使用 get 方法获取组件值
             )
             prj_chat_btn.click(
                 gr_funcs.prj_chat,
-                inputs=[ prj_chat_txt, self.prj_chatbot, llm],  # 传递 llm 参数
-                outputs=[ self.prj_chatbot]  # 使用 get 方法获取组件值
+                inputs=[prj_chat_txt, self.prj_chatbot, llm],  # 传递 llm 参数
+                outputs=[self.prj_chatbot]  # 使用 get 方法获取组件值
             )
             prj_chat_btn.click(
                 gr_funcs.clear_textbox,
-                outputs= self.prj_chat_txt  # 使用 get 方法获取组件值
+                outputs=self.prj_chat_txt  # 使用 get 方法获取组件值
             )
             prj_fe.change(
                 gr_funcs.view_uncmt_file,
                 inputs=[prj_fe],
-                outputs=[ self.uncmt_code, self.
-                    code_cmt_btn,  self.cmt_code]  # 使用 get 方法获取组件值
+                outputs=[self.uncmt_code, self.
+                         code_cmt_btn,  self.cmt_code]  # 使用 get 方法获取组件值
             )
             code_cmt_btn.click(
                 gr_funcs.ai_comment,
-                inputs=[ self.code_cmt_btn,  self.prj_fe,
+                inputs=[self.code_cmt_btn,  self.prj_fe,
                         self.user_id, llm],  # 获取用户 ID 并传递 llm
-                outputs=[ self.code_cmt_btn, self.cmt_code]  # 使用 get 方法获取组件值
+                outputs=[self.code_cmt_btn, self.cmt_code]  # 使用 get 方法获取组件值
             )
             prj_fe.change(
                 gr_funcs.view_raw_lang_code_file,
                 inputs=[prj_fe],
-                outputs=[ self.raw_lang_code,  self.code_lang_ch_btn, self.
-                    code_lang_changed_md]  # 使用 get 方法获取组件值
+                outputs=[self.raw_lang_code,  self.code_lang_ch_btn, self.
+                         code_lang_changed_md]  # 使用 get 方法获取组件值
             )
             code_lang_ch_btn.click(
                 gr_funcs.change_code_lang,
                 inputs=[self.code_lang_ch_btn,  self.raw_lang_code,
                         self.to_lang, self.user_id, llm],  # 获取用户 ID 并传递 llm
-                outputs=[ self.code_lang_ch_btn, self.code_lang_changed_md]  # 使用 get 方法获取组件值
+                outputs=[self.code_lang_ch_btn,
+                         self.code_lang_changed_md]  # 使用 get 方法获取组件值
             )
             search_btn.click(
                 gr_funcs.arxiv_search_func,
-                inputs=[ self.search_query,
-                        self.user_id],  
-                outputs=[ self.search_results, self.selected_paper]  # 使用 get 方法获取组件值
+                inputs=[self.search_query,
+                        self.user_id],
+                outputs=[self.search_results,
+                         self.selected_paper]  # 使用 get 方法获取组件值
             )
             process_paper_btn.click(
                 gr_funcs.process_paper,
-                inputs=[ self.selected_paper,
-                         self.user_id],  # 获取用户 ID
-                outputs=[ self.paper_summary]  # 使用 get 方法获取组件值
+                inputs=[self.selected_paper,
+                        self.user_id],  # 获取用户 ID
+                outputs=[self.paper_summary]  # 使用 get 方法获取组件值
             )
 
             # GitHub 搜索按钮点击事件
             github_search_btn.click(
                 fn=gr_funcs.github_search_func,
-                inputs=[ self.github_query,
-                         self.user_id],  # 获取用户 ID
-                outputs=[ self.github_search_results, self.selected_github_repo]  # 使用 get 方法获取组件值
+                inputs=[self.github_query,
+                        self.user_id],  # 获取用户 ID
+                outputs=[self.github_search_results,
+                         self.selected_github_repo]  # 使用 get 方法获取组件值
             )
 
             # 处理 GitHub 仓库按钮点击事件
             process_github_repo_btn.click(
                 fn=gr_funcs.process_github_repo,
-                inputs=[ self.selected_github_repo,
-                         self.user_id],  # 获取用户 ID
-                outputs=[ self.repo_summary]  # 使用 get 方法获取组件值
+                inputs=[self.selected_github_repo,
+                        self.user_id],  # 获取用户 ID
+                outputs=[self.repo_summary]  # 使用 get 方法获取组件值
             )
 
             # 资源搜索按钮点击事件
             resource_search_btn.click(
                 fn=gr_funcs.search_resource,
-                inputs=[ self.resource_query],
-                outputs=[ self.resource_search_results, self.selected_resource]  # 使用 get 方法获取组件值
+                inputs=[self.resource_query],
+                outputs=[self.resource_search_results,
+                         self.selected_resource]  # 使用 get 方法获取组件值
             )
 
             # 处理资源按钮点击事件
             process_resource_btn.click(
                 fn=gr_funcs.process_resource,
-                inputs=[ self.selected_resource],
-                outputs=[ self.resource_summary]  # 使用 get 方法获取组件值
+                inputs=[self.selected_resource],
+                outputs=[self.resource_summary]  # 使用 get 方法获取组件值
             )
 
             # 新增下载资源按钮点击事件
@@ -574,7 +578,7 @@ class UIManager:
 
             # 更新前端数据，把新的资源选项加上
             self.update_resource_choices()
-            
+
             # 更新向量库
             self.update_rag_cache(self.user_id, new_dir)
 
@@ -589,9 +593,11 @@ class UIManager:
     def get_component(self, component_name):
         return gr.Blocks.get_component(self.build_ui(None)[component_name])
 
+
 def register_handler(username, email, password):
     success, message = user_service.register(username, password, email)
     return message
+
 
 def login_handler(username, password):
     success, user_id, cloud_storage_path = user_service.login(
@@ -601,6 +607,8 @@ def login_handler(username, password):
         return f"登录成功，用户ID: {user_id}, 云库路径: {cloud_storage_path}", user_info
     else:
         return "登录失败，请检查用户名和密码", None
+
+
 def save_file(file, user_id):
     # 检查并创建路径
     base_path = os.path.join('./.Cloud_base', f'user_{user_id}')

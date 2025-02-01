@@ -9,7 +9,7 @@ import config
 import shutil
 import requests
 import gradio as gr
-import gpt_server
+import LLM_server
 import RAG.rag as rag
 import utils.projectIO_utils as projectIO_utils
 import utils.arXiv_search as arXiv_search
@@ -51,7 +51,7 @@ def analyse_project(prj_path, progress=gr.Progress()):
         user_prompt = f"源文件路径：{relative_file_name}，源代码：\n```\n{file_content}```"
 
         try:
-            response = gpt_server.request_llm(sys_prompt, [(user_prompt, None)])
+            response = LLM_server.request_llm(sys_prompt, [(user_prompt, None)])
             llm_responses[file_name] = next(response)
         except Exception as e:
             logging.error(f"处理文件 {file_name} 失败: {e}")
@@ -189,7 +189,7 @@ def ai_comment(btn_name, selected_file, user_id, llm):
             yield '添加注释失败', gr.update(visible=True, language=lang, value=f"添加注释失败: {e}")
 
 def model_change(model_name):
-    gpt_server.set_llm(model_name)
+    LLM_server.set_llm(model_name)
     return model_name
 
 def view_raw_lang_code_file(selected_file):

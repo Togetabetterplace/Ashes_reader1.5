@@ -10,12 +10,18 @@ model_list = [
     'Qwen-14B-Chat',
     'Qwen-14B-Chat-Int8',
     'Qwen-14B-Chat-Int4',
-    'Llama'
+    'DeepSeek-R1-Distill-Qwen-7B'
 ]
 db_path = './.DB_base/user_data.db'
 
 
 def init_config():
+    """
+    初始化配置信息。
+    
+    本函数通过读取环境变量文件来设置项目目录和OpenAI、魔搭等环境变量。
+    它确保了程序可以在正确的环境中运行，并且能够访问所需的资源。
+    """
     # 创建一个配置解析器对象
     config = configparser.ConfigParser()
     config.read('.env')

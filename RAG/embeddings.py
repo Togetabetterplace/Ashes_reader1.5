@@ -7,26 +7,40 @@ import numpy as np
 
 
 class PEmbedding(Embeddings):
-    def __init__(self, model_path, lora_path=None, batch_size=64, **kwargs):
-        # 初始化类，加载模型和tokenizer
-        super().__init__(**kwargs)
-        self.model = AutoModel.from_pretrained(
-            model_path, trust_remote_code=True)  # 加载预训练模型
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model_path, trust_remote_code=True)  # 加载tokenizer
-        # if lora_path is not None:
-        #     self.model = PeftModel.from_pretrained(self.model, lora_path).eval()  # 加载LoRA微调模型
-        self.device = torch.device('cuda')  # 使用GPU
-        self.model.half()  # 使用半精度
-        self.model.to(self.device)  # 将模型移动到GPU
-        self.batch_size = batch_size  # 批处理大小
-        # 设置默认查询指令
-        if 'bge' in model_path:
-            self.DEFAULT_QUERY_BGE_INSTRUCTION_ZH = "为这个句子生成表示以用于检索相关文章："
-        else:
-            self.DEFAULT_QUERY_BGE_INSTRUCTION_ZH = ""
-        self.model_path = model_path
-        print("成功加载嵌入模型")
+    class EmbeddingModel:
+        """
+        初始化嵌入模型类。
+        
+        参数:
+        - model_path (str): 预训练模型的路径。
+        - lora_path (str, optional): LoRA微调模型的路径。默认为None。
+        - batch_size (int, optional): 批处理大小。默认为64。
+        - **kwargs: 其他传递给父类的参数。
+        
+        该函数加载预训练模型和tokenizer，并根据lora_path加载LoRA微调模型（如果提供）。
+        它还将模型移动到GPU并设置为半精度模式，以提高推理效率。
+        """
+    
+        def __init__(self, model_path, lora_path=None, batch_size=64, **kwargs):
+            # 初始化类，加载模型和tokenizer
+            super().__init__(**kwargs)
+            self.model = AutoModel.from_pretrained(
+                model_path, trust_remote_code=True)  # 加载预训练模型
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path, trust_remote_code=True)  # 加载tokenizer
+            # if lora_path is not None:
+            #     self.model = PeftModel.from_pretrained(self.model, lora_path).eval()  # 加载LoRA微调模型
+            self.device = torch.device('cuda')  # 使用GPU
+            self.model.half()  # 使用半精度
+            self.model.to(self.device)  # 将模型移动到GPU
+            self.batch_size = batch_size  # 批处理大小
+            # 设置默认查询指令
+            if 'bge' in model_path:
+                self.DEFAULT_QUERY_BGE_INSTRUCTION_ZH = "为这个句子生成表示以用于检索相关文章："
+            else:
+                self.DEFAULT_QUERY_BGE_INSTRUCTION_ZH = ""
+            self.model_path = model_path
+            print("成功加载嵌入模型")
 
     def compute_kernel_bias(self, vecs, n_components=384):
         """计算kernel和bias

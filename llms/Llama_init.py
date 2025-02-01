@@ -3,6 +3,7 @@
 from modelscope import AutoTokenizer
 from vllm import LLM, SamplingParams
 
+
 class LLM_init:
     def __init__(self, model_name):
         self.model_name = model_name
@@ -10,12 +11,15 @@ class LLM_init:
     def request(self, sys_prompt, user_prompt: list, stream=False):
         pass
 
+
 class Llama(LLM_init):
-    def __init__(self, model_name,model_path=None):
+    def __init__(self, model_name, model_path=None):
         super().__init__(model_name)
 
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-        self.model = LLM(model=model_path, tensor_parallel_size=1, max_num_batched_tokens=8192)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_name, trust_remote_code=True)
+        self.model = LLM(model=model_name, tensor_parallel_size=1,
+                         max_num_batched_tokens=8192)
 
     def request(self, sys_prompt, user_prompt: list, stream=False, max_length=50, top_k=50, temperature=1.0, num_return_sequences=1):
         query, _ = user_prompt[-1]
@@ -40,7 +44,8 @@ class Llama(LLM_init):
             for chunk in self.model.generate(prompt, sampling_params=sampling_params, stream=True):
                 yield chunk
         else:
-            response = self.model.generate(prompt, sampling_params=sampling_params, stream=False)
+            response = self.model.generate(
+                prompt, sampling_params=sampling_params, stream=False)
             for output in response:
                 yield output.outputs[0].text
 
@@ -54,6 +59,7 @@ class Llama(LLM_init):
         prompt += f"User: {query}\nAssistant:"
         return prompt
 
+
 # 示例使用
 if __name__ == "__main__":
     llama = Llama("Llama-2-8b-chat-hf")
@@ -64,6 +70,7 @@ if __name__ == "__main__":
     ]
     query = "什么是深度学习？"
 
-    responses = llama.request(sys_prompt, user_prompt + [(query, "")], stream=False, max_length=100, top_k=50, temperature=0.7, num_return_sequences=1)
+    responses = llama.request(sys_prompt, user_prompt + [(
+        query, "")], stream=False, max_length=100, top_k=50, temperature=0.7, num_return_sequences=1)
     for response in responses:
         print(f"生成的文本: {response}")
